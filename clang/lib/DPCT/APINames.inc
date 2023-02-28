@@ -1883,4 +1883,3 @@ ENTRY(__nv_cvt_float_to_fp8, __nv_cvt_float_to_fp8, false, NO_FLAG, P4, "comment
 ENTRY(__nv_cvt_fp8_to_halfraw, __nv_cvt_fp8_to_halfraw, false, NO_FLAG, P4, "comment")
 ENTRY(__nv_cvt_halfraw2_to_fp8x2, __nv_cvt_halfraw2_to_fp8x2, false, NO_FLAG, P4, "comment")
 ENTRY(__nv_cvt_halfraw_to_fp8, __nv_cvt_halfraw_to_fp8, false, NO_FLAG, P4, "comment")
-
