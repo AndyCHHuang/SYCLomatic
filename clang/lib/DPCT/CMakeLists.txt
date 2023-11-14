@@ -182,6 +182,7 @@ add_clang_library(DPCT
   GroupFunctionAnalyzer.cpp
   TestMigration.cpp
   Schema.cpp
+  TypeSchemaForSYCL.cpp
 
   DEPENDS
   ClangDriverOptions
