@@ -180,6 +180,9 @@ add_clang_library(DPCT
   WMMAAPIMigration.cpp
   OptimizeMigration.cpp
   GroupFunctionAnalyzer.cpp
+  TestMigration.cpp
+  Schema.cpp
+  TypeSchemaForSYCL.cpp
 
   DEPENDS
   ClangDriverOptions
