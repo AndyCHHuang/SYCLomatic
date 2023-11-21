@@ -100,7 +100,7 @@ void DFSBaseClass(clang::CXXRecordDecl *RD, TypeSchema &TS);
 
 TypeSchema constructTypeSchema(const clang::RecordType *RT);
 
-TypeSchema registerTypeSchema(const clang::QualType QT);
+TypeSchema registerTypeSchema(const clang::QualType &QT);
 
 VarSchema constructVarSchema(const clang::DeclRefExpr *DRE);
 

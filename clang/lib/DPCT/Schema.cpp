@@ -55,8 +55,8 @@ inline FieldSchema dpct::constructFieldSchema(const clang::FieldDecl *FD) {
   FS.ValTypeOfField = getValType(FT);
   FS.ValSize = AstContext.getTypeSize(FT) / CHAR_BIT;
   FS.Offset = AstContext.getFieldOffset(FD) / CHAR_BIT;
-  if (!FS.IsBasicType)
-    registerTypeSchema(OriginT);
+  // if (!FS.IsBasicType)
+  registerTypeSchema(OriginT);
   return FS;
 }
 
@@ -85,7 +85,7 @@ void dpct::DFSBaseClass(clang::CXXRecordDecl *RD, TypeSchema &TS) {
   return;
 }
 
-TypeSchema dpct::registerTypeSchema(const clang::QualType QT) {
+TypeSchema dpct::registerTypeSchema(const clang::QualType &QT) {
   TypeSchema TS;
   if (QT.isNull())
     return TS;
@@ -93,10 +93,9 @@ TypeSchema dpct::registerTypeSchema(const clang::QualType QT) {
   if (TypeSchemaMap.find(KetStr) != TypeSchemaMap.end())
     return TypeSchemaMap.find(KetStr)->second;
   clang::ASTContext &AstContext = dpct::DpctGlobalInfo::getContext();
-  if (const clang::RecordType *RT = QT->getAs<clang::RecordType>()) {
-
-    TS.TypeName = KetStr;
-    TS.TypeSize = AstContext.getTypeSize(RT) / CHAR_BIT;
+  TS.TypeName = KetStr;
+  TS.TypeSize = AstContext.getTypeSize(QT) / CHAR_BIT;
+  if (const clang::RecordType *RT = QT->getAs<clang::RecordType>()) { 
     TS.FileName =
         getFilePathFromDecl(RT->getDecl(), DpctGlobalInfo::getSourceManager());
     for (const clang::FieldDecl *field : RT->getDecl()->fields()) {
@@ -108,8 +107,10 @@ TypeSchema dpct::registerTypeSchema(const clang::QualType QT) {
       DFSBaseClass(RD, TS);
     }
     TS.FieldNum = TS.Members.size();
-    TypeSchemaMap[KetStr] = TS;
+  } else if (const clang::BuiltinType *BT = QT->getAs<clang::BuiltinType>()){
+    TS.FileName = "BuiltinType";
   }
+  TypeSchemaMap[KetStr] = TS;
   return TS;
 }
 
@@ -132,8 +133,8 @@ VarSchema dpct::constructVarSchema(const clang::DeclRefExpr *DRE) {
 
 std::map<std::string, TypeSchema> clang::dpct::TypeSchemaMap;
 
-llvm::json::Array
-dpct::serializeSchemaToJsonArray(const std::map<std::string, TypeSchema> &TSMap) {
+llvm::json::Array dpct::serializeSchemaToJsonArray(
+    const std::map<std::string, TypeSchema> &TSMap) {
   llvm::json::Array JArray;
   for (auto &it : TSMap) {
     JArray.push_back(serializeSchemaToJson(it.second));
@@ -207,7 +208,8 @@ std::vector<TypeSchema> dpct::getRelatedTypeSchema(const clang::QualType QT) {
   return Res;
 }
 
-llvm::json::Array dpct::serializeSchemaToJsonArray(const std::vector<TypeSchema> &SVec) {
+llvm::json::Array
+dpct::serializeSchemaToJsonArray(const std::vector<TypeSchema> &SVec) {
   llvm::json::Array JArray;
   for (auto &it : SVec) {
     JArray.push_back(serializeSchemaToJson(it));
