@@ -3,6 +3,7 @@
 
 #include "json.hpp"
 #include "schema.hpp"
+#include <memory>
 #ifdef __NVCC__
 #include <cuda_runtime.h>
 #else
@@ -11,10 +12,6 @@
 #endif
 namespace dpct {
 namespace experimental {
-
-#define register_schema(obj, type, schema_str)                                 \
-  std::shared_ptr<dpct::experimental::Schema> obj =                            \
-      parse_schema_str(schema_str, type);
 
 #ifdef __NVCC__
 inline void synchronize(cudaStream_t stream) {
@@ -35,6 +32,7 @@ void gen_epilog_API_CP(const std::string &api_name, cudaStream_t stream,
 }
 #else
 void synchronize(sycl::queue *q) { q->wait(); }
+
 template <class... Args>
 void gen_prolog_API_CP(const std::string &api_name, sycl::queue *queue,
                        Args... args) {

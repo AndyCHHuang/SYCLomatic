@@ -195,7 +195,7 @@ public:
   char peek() { return cur_p != end ? *cur_p : 0; }
 };
 
-inline bool parse(std::string &json, dpct_json::value &v);
+inline bool parse(const std::string &json, dpct_json::value &v);
 
 inline value &object::operator[](const std::string &key) {
   if (!contains(key)) {
@@ -212,16 +212,17 @@ inline value &object::operator[](std::string &&key) {
     return obj_map[key];
   }
 }
+
 inline const value &object::get(const std::string &key) {
   if (!contains(key)) {
-    error_exit("The " + key + " is not in the schema");
+    error_exit("The " + key + " needs to define in the schema.");
   }
   return obj_map[key];
 }
 
 inline const value &object::get(std::string &&key) {
   if (!contains(key)) {
-    error_exit("The " + key + " is not in the schema");
+    error_exit("The " + key + " needs to define in the schema.");
   }
   return obj_map[key];
 }
@@ -236,7 +237,7 @@ inline bool json_parser::parse_string(std::string &ret_str) {
   while (peek() != '"') {
     if (cur_p == end) {
       error_exit("The string needs \" to wrap it. Please check the json "
-                 "format.\n") return false;
+                 "format.\n");
     }
     ret_str += next();
   }
@@ -289,7 +290,7 @@ inline bool json_parser::parse_value(value &v) {
       case ']':
         return true;
       default:
-        error_exit("Not correct type\n");
+        error_exit("The end of the json value is not correct. Please check the format.\n");
       }
     }
     break;
@@ -303,7 +304,7 @@ inline bool json_parser::parse_value(value &v) {
 
       if (next() == '"') {
         if (!parse_string(key)) {
-          error_exit("The format of string is not correct.\n")
+          error_exit("Parse the json key failed, please check the json format.\n")
         }
       }
       ignore_space();
@@ -323,7 +324,7 @@ inline bool json_parser::parse_value(value &v) {
         return true;
       }
       default:
-        error_exit("JSON Parse Error: The key should be end with '}' or ','.\n")
+        error_exit("Json parsing Error: The key should be end with '}' or ','.\n")
       }
     }
     error_exit("The key-value format not correct");
@@ -340,12 +341,13 @@ inline bool json_parser::parse_value(value &v) {
       v = true;
       return true;
     }
-    error_exit("The json format is not correct, please double check!");
+    error_exit("The bool value should be \"true\", please check the spelling.");
   case 'f':
     if (next() == 'a' && next() == 'l' && next() == 's' && next() == 'e') {
       v = false;
       return true;
     }
+    error_exit("The bool value should be \"false\", please check the spelling.");
   default:
     if (is_number(c)) {
       int64_t value;
@@ -353,7 +355,7 @@ inline bool json_parser::parse_value(value &v) {
       v = value;
       return true;
     }
-    error_exit("The json format is not correct, please double check!");
+    error_exit("Unkown Json type, please check the format json format.\n");
   }
 }
 } // namespace dpct_json
