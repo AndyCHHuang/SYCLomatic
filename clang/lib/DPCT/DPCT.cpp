@@ -1020,7 +1020,7 @@ int runDPCT(int argc, const char **argv) {
   }
 
   MapNames::setExplicitNamespaceMap();
-  clang::dpct::setTypeSchemaMap();
+  clang::dpct::setSTypeSchemaMap();
   CallExprRewriterFactoryBase::initRewriterMap();
   TypeLocRewriterFactoryBase::initTypeLocRewriterMap();
   MemberExprRewriterFactoryBase::initMemberExprRewriterMap();
