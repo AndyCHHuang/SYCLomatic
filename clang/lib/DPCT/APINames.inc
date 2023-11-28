@@ -357,6 +357,10 @@ ENTRY(cudaGetSurfaceReference, cudaGetSurfaceReference, false, NO_FLAG, P4, "com
 
 // low level texture object management functions of runtime API
 ENTRY(cudaCreateChannelDesc, cudaCreateChannelDesc, true, NO_FLAG, P0, "Successful")
+ENTRY(cudaCreateChannelDescHalf, cudaCreateChannelDescHalf, true, NO_FLAG, P0, "Successful")
+ENTRY(cudaCreateChannelDescHalf1, cudaCreateChannelDescHalf1, true, NO_FLAG, P0, "Successful")
+ENTRY(cudaCreateChannelDescHalf2, cudaCreateChannelDescHalf2, true, NO_FLAG, P0, "Successful")
+ENTRY(cudaCreateChannelDescHalf4, cudaCreateChannelDescHalf4, true, NO_FLAG, P0, "Successful")
 ENTRY(cudaCreateTextureObject, cudaCreateTextureObject, true, NO_FLAG, P0, "Successful")
 ENTRY(cudaDestroyTextureObject, cudaDestroyTextureObject, true, NO_FLAG, P0, "Successful")
 ENTRY(cudaGetChannelDesc, cudaGetChannelDesc, true, NO_FLAG, P0, "Successful")
@@ -709,6 +713,7 @@ ENTRY(__ushort2half_rn, __ushort2half_rn, true, NO_FLAG, P4, "Successful")
 ENTRY(__ushort2half_ru, __ushort2half_ru, true, NO_FLAG, P4, "Successful")
 ENTRY(__ushort2half_rz, __ushort2half_rz, true, NO_FLAG, P4, "Successful")
 ENTRY(__ushort_as_half, __ushort_as_half, true, NO_FLAG, P4, "Successful")
+ENTRY(make_half2, make_half2, true, NO_FLAG, P4, "Successful")
 
 // Half Math Functions
 ENTRY(hceil, hceil, true, NO_FLAG, P4, "Successful")
