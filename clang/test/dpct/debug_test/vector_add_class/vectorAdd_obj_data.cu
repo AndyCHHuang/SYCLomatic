@@ -38,7 +38,7 @@
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
 
-#include "../debug_helper.hpp"
+#include "dpct/debug/debug_helper.hpp"
 #include "generated_schema.hpp"
 
 
