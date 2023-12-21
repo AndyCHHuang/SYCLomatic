@@ -10,6 +10,7 @@
 
 #include "clang/Frontend/ASTUnit.h"
 #include "clang/Frontend/CompilerInstance.h"
+#include <iostream>
 
 #include "AnalysisInfo.h"
 #include "MigrationRuleManager.h"
@@ -130,11 +131,12 @@ void DpctFrontEndAction::EndSourceFileAction() {
 }
 
 DpctToolAction::DpctToolAction(
-    llvm::raw_ostream &DS, ReplTy &Replacements, const std::string &RuleNames,
-    std::vector<PassKind> Passes,
+    llvm::raw_ostream &DS, ReplTy &ReplCUDA, ReplTy &ReplSYCL,
+    const std::string &RuleNames, std::vector<PassKind> Passes,
     llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS)
-    : Global(DpctGlobalInfo::getInstance()), Repls(Replacements),
-      Passes(std::move(Passes)), DiagnosticStream(DS), FS(FS) {
+    : Global(DpctGlobalInfo::getInstance()), ReplsCUDA(ReplCUDA),
+      ReplsSYCL(ReplSYCL), Passes(std::move(Passes)), DiagnosticStream(DS),
+      FS(FS) {
   if (RuleNames.empty())
     return;
   auto Names = split(RuleNames, ',');
@@ -222,7 +224,7 @@ void DpctToolAction::traversTranslationUnit(PassKind Pass,
   DpctGlobalInfo::setContext(Context);
   DpctGlobalInfo::getInstance().setMainFile(Info.MainFile);
   MigrationRuleManager MRM(Pass, Transforms, Info.Groups);
-  printFileStaging(getStagingName(Pass), Info.MainFile->getFilePath());
+  printFileStaging(getStagingName(Pass), Info.MainFile->getFilePath().getCanonicalPath());
   MRM.matchAST(Context, MigrationRuleNames);
   for (const auto &I : Transforms) {
     auto Repl = I->getReplacement(Context);
@@ -271,12 +273,11 @@ void DpctToolAction::runPasses() {
   for (auto Pass : Passes) {
     runPass(Pass);
   }
-
   runWithCrashGuard(
       [&]() {
         Global.buildReplacements();
         Global.postProcess();
-        Global.emplaceReplacements(Repls);
+        Global.emplaceReplacements(ReplsCUDA, ReplsSYCL);
       },
       PostProcessFaultMsg);
 }

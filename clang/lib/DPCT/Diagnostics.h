@@ -37,25 +37,23 @@ struct DiagnosticsMessage;
 extern std::unordered_map<int, DiagnosticsMessage> DiagnosticIDTable;
 extern std::unordered_map<int, DiagnosticsMessage> CommentIDTable;
 extern std::unordered_map<int, DiagnosticsMessage> MsgIDTable;
-
+extern std::unordered_set<int> APIQueryNeedReportWarningIDSet;
 extern std::set<int> WarningIDs;
 
 struct DiagnosticsMessage {
   int ID;
   int Category;
   const char *Msg;
-#define DEF_NOTE(NAME, ID, MSG)
-#define DEF_ERROR(NAME, ID, MSG)
-#define DEF_WARNING(NAME, ID, MSG) ID,
-#define DEF_COMMENT(NAME, ID, MSG)
+
+#define DEF_WARNING(NAME, ID, LEVEL, MSG) ID,
+#define DEF_COMMENT(NAME, ID, LEVEL, MSG)
   constexpr static size_t MinID = std::min({
 #include "Diagnostics.inc"
   });
+#define DEF_WARNING(NAME, ID, LEVEL, MSG) ID,
   constexpr static size_t MaxID = std::max({
 #include "Diagnostics.inc"
   });
-#undef DEF_NOTE
-#undef DEF_ERROR
 #undef DEF_WARNING
 #undef DEF_COMMENT
   DiagnosticsMessage() = default;
@@ -69,38 +67,26 @@ struct DiagnosticsMessage {
   }
 };
 
-#define DEF_NOTE(NAME, ID, MSG) NAME = ID,
-#define DEF_ERROR(NAME, ID, MSG) NAME = ID,
-#define DEF_WARNING(NAME, ID, MSG) NAME = ID,
-#define DEF_COMMENT(NAME, ID, MSG)
+#define DEF_WARNING(NAME, ID, LEVEL, MSG) NAME = ID,
+#define DEF_COMMENT(NAME, ID, LEVEL, MSG)
 enum class Diagnostics {
 #include "Diagnostics.inc"
-#undef DEF_NOTE
-#undef DEF_ERROR
 #undef DEF_WARNING
 #undef DEF_COMMENT
 };
 
-#define DEF_NOTE(NAME, ID, MSG)
-#define DEF_ERROR(NAME, ID, MSG)
-#define DEF_WARNING(NAME, ID, MSG)
-#define DEF_COMMENT(NAME, ID, MSG) NAME = ID,
+#define DEF_WARNING(NAME, ID, LEVEL, MSG)
+#define DEF_COMMENT(NAME, ID, LEVEL, MSG) NAME = ID,
 enum class Comments {
 #include "Diagnostics.inc"
-#undef DEF_NOTE
-#undef DEF_ERROR
 #undef DEF_WARNING
 #undef DEF_COMMENT
 };
 
-#define DEF_NOTE(NAME, ID, MSG)
-#define DEF_ERROR(NAME, ID, MSG)
-#define DEF_WARNING(NAME, ID, MSG) NAME = ID,
-#define DEF_COMMENT(NAME, ID, MSG)
+#define DEF_WARNING(NAME, ID, LEVEL, MSG) NAME = ID,
+#define DEF_COMMENT(NAME, ID, LEVEL, MSG)
 enum class Warnings {
 #include "Diagnostics.inc"
-#undef DEF_NOTE
-#undef DEF_ERROR
 #undef DEF_WARNING
 #undef DEF_COMMENT
 };
@@ -292,15 +278,18 @@ private:
 };
 
 template <typename IDTy, typename... Ts>
-bool report(const std::string &FileAbsPath, unsigned int Offset, IDTy MsgID,
+bool report(const clang::tooling::UnifiedPath &FileAbsPath, unsigned int Offset, IDTy MsgID,
             bool IsInsertWarningIntoCode, bool UseTextBegin, Ts &&...Vals);
 
 // Emits a warning/error/note and/or comment depending on MsgID. For details
 template <typename IDTy, typename... Ts>
 inline bool report(SourceLocation SL, IDTy MsgID,
             TransformSetTy *TS, bool UseTextBegin, Ts &&... Vals) {
-  if (DpctGlobalInfo::isQueryAPIMapping())
-    return true;
+  if (DpctGlobalInfo::isQueryAPIMapping()) {
+    if (!APIQueryNeedReportWarningIDSet.count((int)MsgID)) {
+      return true;
+    }
+  }
   auto &SM = dpct::DpctGlobalInfo::getSourceManager();
   if (SL.isMacroID() && !SM.isMacroArgExpansion(SL)) {
     auto ItMatch = dpct::DpctGlobalInfo::getMacroTokenToMacroDefineLoc().find(
@@ -380,21 +369,21 @@ private:
 
 // Emits a warning/error/note and/or comment depending on MsgID. For details
 template <typename IDTy, typename... Ts>
-bool report(const std::string &FileAbsPath, unsigned int Offset, IDTy MsgID,
+bool report(const clang::tooling::UnifiedPath &FileAbsPath, unsigned int Offset, IDTy MsgID,
             bool IsInsertWarningIntoCode, bool UseTextBegin, Ts &&...Vals) {
+  if (DpctGlobalInfo::isQueryAPIMapping()) {
+    if (!APIQueryNeedReportWarningIDSet.count((int)MsgID)) {
+      return true;
+    }
+  }
   // Do not emit diagnostic message for source location outside --in-root
   if (!DpctGlobalInfo::isInRoot(FileAbsPath))
     return false;
   std::shared_ptr<DpctFileInfo> Fileinfo =
       dpct::DpctGlobalInfo::getInstance().insertFile(FileAbsPath);
 
-  SmallString<4096> NativeFormPath(FileAbsPath);
-  // Convert path to the native form.
-  // E.g, on Windows all '/' are converted to '\'.
-  llvm::sys::path::native(NativeFormPath);
-
   std::string FileAndLine = clang::dpct::buildString(
-      NativeFormPath, ":", Fileinfo->getLineNumber(Offset));
+      FileAbsPath.getCanonicalPath(), ":", Fileinfo->getLineNumber(Offset));
   std::string WarningIDAndMsg = clang::dpct::buildString(
       std::to_string(static_cast<int>(MsgID)), ":", Vals...);
 
@@ -404,7 +393,7 @@ bool report(const std::string &FileAbsPath, unsigned int Offset, IDTy MsgID,
   SourceManager &SM = SourceManagerForWarning::getSM();
 
   llvm::Expected<FileEntryRef> Result =
-      SM.getFileManager().getFileRef(NativeFormPath);
+      SM.getFileManager().getFileRef(FileAbsPath.getCanonicalPath());
   if (auto E = Result.takeError())
     return false;
   FileID FID = SM.getOrCreateFileID(*Result, SrcMgr::C_User);
@@ -425,7 +414,7 @@ bool report(const std::string &FileAbsPath, unsigned int Offset, IDTy MsgID,
   if (IsInsertWarningIntoCode) {
     auto StartLoc = getStartOfLine(SL, SM, LangOptions(), UseTextBegin);
     std::shared_ptr<ExtReplacement> R = std::make_shared<ExtReplacement>(
-        NativeFormPath.str().str(), SM.getDecomposedLoc(StartLoc).second, 0,
+        FileAbsPath.getCanonicalPath(), SM.getDecomposedLoc(StartLoc).second, 0,
         getCommentToInsert(StartLoc, SM, MsgID, UseTextBegin,
                            std::forward<Ts>(Vals)...),
         nullptr);

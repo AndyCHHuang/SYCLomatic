@@ -8,20 +8,26 @@
 
 #ifndef DPCT_MIGRATE_CMAKE_SCRIPT_H
 #define DPCT_MIGRATE_CMAKE_SCRIPT_H
+#include "Rules.h"
 
 #include "clang/Tooling/CommonOptionsParser.h"
-#include "llvm/ADT/StringRef.h"
+#include "clang/Tooling/Core/UnifiedPath.h"
 
+#include <map>
 
-std::string getCmakeBuildPathFromInRoot(llvm::StringRef InRoot,
-                                        llvm::StringRef OutRoot);
-void collectCmakeScripts(llvm::StringRef InRoot, llvm::StringRef OutRoot,
-                         std::vector<std::string> &CmakeScriptFiles);
-bool migrateCmakeScriptFile(llvm::StringRef InRoot, llvm::StringRef OutRoot,
-                            std::string InFileName);
+clang::tooling::UnifiedPath
+getCmakeBuildPathFromInRoot(const clang::tooling::UnifiedPath &InRoot,
+                            const clang::tooling::UnifiedPath &OutRoot);
+void collectCmakeScripts(const clang::tooling::UnifiedPath &InRoot,
+                         const clang::tooling::UnifiedPath &OutRoot);
+void collectCmakeScriptsSpecified(
+    const llvm::Expected<clang::tooling::CommonOptionsParser> &OptParser,
+    const clang::tooling::UnifiedPath &InRoot,
+    const clang::tooling::UnifiedPath &OutRoot);
+
+void doCmakeScriptMigration(const clang::tooling::UnifiedPath &InRoot,
+                            const clang::tooling::UnifiedPath &OutRoot);
 bool cmakeScriptFileSpecified(const std::vector<std::string> &SourceFiles);
 
-void migrateCmakeScriptOnly(
-    const llvm::Expected<clang::tooling::CommonOptionsParser> &OptParser,
-    llvm::StringRef InRoot, llvm::StringRef OutRoot);
+void registerCmakeMigrationRule(MetaRuleObject &R);
 #endif

@@ -9,8 +9,9 @@
 //  Implements classes to support/store refactorings.
 //
 //===----------------------------------------------------------------------===//
-
+#include<iostream>
 #include "clang/Tooling/Core/Replacement.h"
+#include "clang/Tooling/Core/UnifiedPath.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/DiagnosticIDs.h"
 #include "clang/Basic/DiagnosticOptions.h"
@@ -49,11 +50,7 @@ Replacement::Replacement(StringRef FilePath, unsigned Offset, unsigned Length,
                          StringRef ReplacementText)
     : ReplacementRange(Offset, Length),
       ReplacementText(std::string(ReplacementText)) {
-#if defined(_WIN32)
-  this->FilePath = std::string(FilePath.lower());
-#else
-  this->FilePath = std::string(FilePath);
-#endif
+  this->FilePath = clang::tooling::UnifiedPath(FilePath).getCanonicalPath();
 }
 #else
 Replacement::Replacement(StringRef FilePath, unsigned Offset, unsigned Length,
@@ -143,26 +140,11 @@ void Replacement::setFromSourceLocation(const SourceManager &Sources,
     // To avoid potential path inconsist issue,
     // using tryGetRealPathName while applicable.
     if (!FileEntry.tryGetRealPathName().empty()) {
-      this->FilePath =
-#if defined(_WIN32)
-          FileEntry.tryGetRealPathName().lower();
-#else
-          FileEntry.tryGetRealPathName().str();
-#endif
+      this->FilePath = clang::tooling::UnifiedPath(FileEntry.tryGetRealPathName()).getCanonicalPath();
     } else {
       llvm::SmallString<512> FilePathAbs(FileEntry.getName());
       Sources.getFileManager().makeAbsolutePath(FilePathAbs);
-      llvm::sys::path::native(FilePathAbs);
-      // Need to remove dot to keep the file path
-      // added by ASTMatcher and added by
-      // AnalysisInfo::getLocInfo() consistent.
-      llvm::sys::path::remove_dots(FilePathAbs, true);
-#if defined(_WIN32)
-      std::transform(FilePathAbs.begin(), FilePathAbs.end(),
-                     FilePathAbs.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-#endif
-      this->FilePath = std::string(FilePathAbs.str());
+      this->FilePath = clang::tooling::UnifiedPath(FilePathAbs).getCanonicalPath();
     }
   } else {
     this->FilePath = std::string(InvalidLocation);
@@ -323,7 +305,7 @@ llvm::Error Replacements::add(const Replacement &R) {
   // insertion.
   auto I = Replaces.lower_bound(AtEnd);
   // If `I` starts at the same offset as `R`, `R` must be an insertion.
-  if (I != Replaces.end() && R.getOffset() == I->getOffset()) {
+  if (I != Replaces.end() && R.getOffset() == I->getOffset() && R.IsForCUDADebug == I->IsForCUDADebug) {
     assert(R.getLength() == 0);
     // `I` is also an insertion, `R` and `I` conflict.
     if (I->getLength() == 0) {
@@ -333,8 +315,11 @@ llvm::Error Replacements::add(const Replacement &R) {
           (I->getReplacementText() + R.getReplacementText()).str())
 #ifdef SYCLomatic_CUSTOMIZATION
 #ifndef NDEBUG
-        return llvm::make_error<ReplacementError>(
+        {
+          std::cout<<"insert"<<R.getReplacementText().str()<<std::endl;
+          return llvm::make_error<ReplacementError>(
             replacement_error::insert_conflict, R, *I);
+        }
       // If insertions are order-independent, we can merge them.
       Replacement NewR(
           R.getFilePath(), R.getOffset(), 0,
@@ -656,46 +641,51 @@ int CheckPointStageCore=0 /*CHECKPOINT_UNKNOWN*/;
 namespace clang {
 namespace tooling {
 
-bool applyAllReplacements(const Replacements &Replaces, Rewriter &Rewrite) {
 #ifdef SYCLomatic_CUSTOMIZATION
+bool applyAllReplacements(const Replacements &Replaces, Rewriter &Rewrite,
+                          bool IsDebugCUDA) {
   // Add declared "volatile" to remove warning "variable ‘Result’ might be
   // clobbered by ‘longjmp’ or ‘vfork’ "
   volatile bool Result = true;
-#else
-  bool Result = true;
-#endif // SYCLomatic_CUSTOMIZATION
   for (auto I = Replaces.rbegin(), E = Replaces.rend(); I != E; ++I) {
-#ifdef SYCLomatic_CUSTOMIZATION
+    if (I->IsForCUDADebug != IsDebugCUDA)
+      continue;
     CheckPointStageCore = 5 /*CHECKPOINT_WRITE_OUT*/;
-    int Ret=SETJMP(CPApplyReps);
-    if(Ret != 0) {
-       //skip the a replacement, as meet fatal error when apply the replacement.
-       continue;
+    int Ret = SETJMP(CPApplyReps);
+    if (Ret != 0) {
+      // skip the a replacement, as meet fatal error when apply the
+      // replacement.
+      continue;
     }
-#endif // SYCLomatic_CUSTOMIZATION
     if (I->isApplicable()) {
-#ifdef SYCLomatic_CUSTOMIZATION
       try {
-#endif // SYCLomatic_CUSTOMIZATION
-      Result = I->apply(Rewrite) && Result;
-#ifdef SYCLomatic_CUSTOMIZATION
+        Result = I->apply(Rewrite) && Result;
       } catch (std::exception &e) {
-        std::string FaultMsg =
-            "Error: dpct internal error. dpct tries to recover and write the migration result.\n";
+        std::string FaultMsg = "Error: dpct internal error. dpct tries to "
+                               "recover and write the migration result.\n";
         llvm::errs() << FaultMsg;
       }
-#endif // SYCLomatic_CUSTOMIZATION
     } else {
       Result = false;
     }
   }
-#ifdef SYCLomatic_CUSTOMIZATION
-  //tag the checkpoint is invalid now.
+  // tag the checkpoint is invalid now.
   CheckPointStageCore = 0 /*CHECKPOINT_UNKNOWN*/;
-#endif // SYCLomatic_CUSTOMIZATION
   return Result;
 }
-
+#else
+bool applyAllReplacements(const Replacements &Replaces, Rewriter &Rewrite) {
+  bool Result = true;
+  for (auto I = Replaces.rbegin(), E = Replaces.rend(); I != E; ++I) {
+    if (I->isApplicable()) {
+      Result = I->apply(Rewrite) && Result;
+    } else {
+      Result = false;
+    }
+  }
+  return Result;
+}
+#endif // SYCLomatic_CUSTOMIZATION
 llvm::Expected<std::string> applyAllReplacements(StringRef Code,
                                                 const Replacements &Replaces) {
   if (Replaces.empty())

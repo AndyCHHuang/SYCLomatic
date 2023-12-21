@@ -10,11 +10,11 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
-#include <numeric>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
+#include <numeric>
 
 #ifdef __NVCC__
 #include <cuda_runtime.h>
@@ -43,7 +43,7 @@ inline void set_size_of_schema(const std::string &schema, size_t size) {
 enum class ValType { SCALAR, POINTER, ARRAY, POINTERTOPOINTER };
 enum class MemLoc { NONE, HOST, DEVICE };
 enum class schema_type {
-  TYPE,  // class or struct type.`
+  TYPE,  // class or struct type.
   DATA,  // alloc data type.
   MEMBER // data member in class or struct.
 };
