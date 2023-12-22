@@ -1109,8 +1109,8 @@ public:
   }
   inline static bool isCtadEnabled() { return EnableCtad; }
   inline static void setCtadEnabled(bool Enable = true) { EnableCtad = Enable; }
-  inline static bool isDebugEnabled() { return EnableDebug; }
-  inline static void setDebugEnabled(bool Enable = false) { EnableDebug = Enable; }
+  inline static bool isCodePinEnabled() { return EnableCodePin; }
+  inline static void setCodePinEnabled(bool Enable = false) { EnableCodePin = Enable; }
   inline static bool isGenBuildScript() { return GenBuildScript; }
   inline static void setGenBuildScriptEnabled(bool Enable = true) {
     GenBuildScript = Enable;
@@ -2068,7 +2068,7 @@ private:
   static format::FormatRange FmtRng;
   static DPCTFormatStyle FmtST;
   static bool EnableCtad;
-  static bool EnableDebug;
+  static bool EnableCodePin;
   static bool IsMLKHeaderUsed;
   static bool GenBuildScript;
   static bool MigrateCmakeScript;

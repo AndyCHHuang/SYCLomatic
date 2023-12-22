@@ -8450,7 +8450,7 @@ void KernelCallRule::runRule(
     emplaceTransformation(
         new ReplaceText(KCallSpellingRange.first, KCallLen, ""));
     auto EpilogLocation = removeTrailingSemicolon(KCall, Result);
-    if (DpctGlobalInfo::isDebugEnabled()) {
+    if (DpctGlobalInfo::isCodePinEnabled()) {
       std::string DebugArgsString = "(\"";
       std::string DebugArgsStringSYCL = "(\"";
       DebugArgsString += KCallSpellingRange.first.printToString(SM) + "\", ";
@@ -9964,7 +9964,7 @@ void MemoryMigrationRule::mallocMigration(
   int Index = DpctGlobalInfo::getHelperFuncReplInfoIndexThenInc();
 
   auto InsertPtrSize = [&](int PtrArgNum, int ArgMemSizeInBits) {
-    if (DpctGlobalInfo::isDebugEnabled()) {
+    if (DpctGlobalInfo::isCodePinEnabled()) {
       auto PtrSizeLoc = Lexer::findLocationAfterToken(
           C->getEndLoc(), tok::semi, *Result.SourceManager,
           DpctGlobalInfo::getContext().getLangOpts(), false);

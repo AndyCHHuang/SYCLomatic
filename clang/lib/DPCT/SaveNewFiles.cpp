@@ -553,7 +553,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
         applyPatternRewriter(OutputString, Stream);
       }
     }
-    if (DpctGlobalInfo::isDebugEnabled()) {
+    if (DpctGlobalInfo::isCodePinEnabled()) {
       for (auto &Entry : ReplCUDA) {
         OutPath = StringRef(DpctGlobalInfo::removeSymlinks(
             Rewrite.getSourceMgr().getFileManager(), Entry.first));
@@ -594,7 +594,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
         std::ofstream DebugCUDAFile(DebugCUDAPath.getCanonicalPath().str(),
                                     std::ios::binary);
         llvm::raw_os_ostream DebugCUDAStream(DebugCUDAFile);
-        if (dpct::DpctGlobalInfo::isDebugEnabled() && !DebugCUDAFile) {
+        if (dpct::DpctGlobalInfo::isCodePinEnabled() && !DebugCUDAFile) {
           std::string ErrMsg =
               "[ERROR] Create file: " + DebugCUDAPath.getCanonicalPath().str() + " fail.\n";
           PrintMsg(ErrMsg);
@@ -840,7 +840,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
 
   saveUpdatedMigrationDataIntoYAML(MainSrcFilesRepls, MainSrcFilesDigest,
                                    YamlFile, SrcFile, MainSrcFileMap);
-  if (dpct::DpctGlobalInfo::isDebugEnabled()) {
+  if (dpct::DpctGlobalInfo::isCodePinEnabled()) {
     std::string SchemaPathCUDA = DebugCUDAFolder + "/generated_schema.hpp";
     std::string SchemaPathSYCL =
         OutRoot.getCanonicalPath().str() + "/generated_schema.hpp";
