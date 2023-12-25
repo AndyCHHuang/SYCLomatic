@@ -33,7 +33,7 @@ template <class... Args>
 void gen_prolog_API_CP(const std::string &api_name, cudaStream_t stream,
                        Args... args) {
   synchronize(stream);
-  gen_log_API_CP(api_name, args...);
+  dpct::experimental::detail::gen_log_API_CP(api_name, args...);
 }
 
 /// Generate API check point epilog.
@@ -56,7 +56,7 @@ template <class... Args>
 void gen_prolog_API_CP(const std::string &api_name, sycl::queue *queue,
                        Args... args) {
   synchronize(queue);
-  gen_log_API_CP(api_name, args...);
+  dpct::experimental::detail::gen_log_API_CP(api_name, args...);
 }
 
 /// Generate API check point epilog.
@@ -70,18 +70,18 @@ void gen_epilog_API_CP(const std::string &api_name, sycl::queue *queue,
 }
 #endif
 
-void gen_data_CP(const std::string &data_name, std::shared_ptr<Schema> schema,
+inline void gen_data_CP(const std::string &data_name, std::shared_ptr<detail::Schema> schema,
                  long value, size_t size = 0) {
   std::string detail = "";
   switch (schema->get_val_type()) {
-  case ValType::SCALAR:
+  case detail::ValType::SCALAR:
     get_val_from_addr(detail, schema, (void *)&value, size);
     break;
-  case ValType::ARRAY:
-  case ValType::POINTER:
+  case detail::ValType::ARRAY:
+  case detail::ValType::POINTER:
     get_val_from_addr(detail, schema, (void *)value, size);
     break;
-  case ValType::POINTERTOPOINTER:
+  case detail::ValType::POINTERTOPOINTER:
     get_val_from_addr(detail, schema, *(void **)value, size);
     break;
   };
@@ -90,8 +90,7 @@ void gen_data_CP(const std::string &data_name, std::shared_ptr<Schema> schema,
 }
 
 inline std::map<void *, uint32_t> &get_pointer_size_map() {
-  static std::map<void *, uint32_t> ptr_size_map;
-  return ptr_size_map;
+  return dpct::experimental::detail::get_ptr_size_map();
 }
 
 inline uint32_t get_pointer_size_in_bytes_from_map(void *ptr) {

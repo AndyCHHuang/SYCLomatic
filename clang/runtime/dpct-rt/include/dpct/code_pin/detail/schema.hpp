@@ -21,6 +21,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <numeric>
 
 #ifdef __NVCC__
 #include <cuda_runtime.h>
@@ -37,16 +38,24 @@ class Schema;
 
 static std::map<std::string, std::shared_ptr<Schema>> schema_map;
 static std::map<std::string, size_t> schema_size;
-size_t get_size_of_schema(const std::string &schema) {
+
+inline size_t get_size_of_schema(const std::string &schema) {
   if (schema_size.find(schema) == schema_size.end()) {
     schema_size[schema] = 0; // '0' indicates that the size will match the type
                              // size specified in the schema string
   }
   return schema_size[schema];
 }
-void set_size_of_schema(const std::string &schema, size_t size) {
+
+inline void set_size_of_schema(const std::string &schema, size_t size) {
   schema_size[schema] = size;
 }
+
+inline std::map<void *, uint32_t> &get_ptr_size_map() {
+  static std::map<void *, uint32_t> ptr_size_map;
+  return ptr_size_map;
+}
+
 enum class ValType { SCALAR, POINTER, ARRAY, POINTERTOPOINTER };
 enum class MemLoc { NONE, HOST, DEVICE };
 enum class schema_type {
@@ -255,7 +264,7 @@ inline bool dpct_json::parse(const std::string &json, dpct_json::value &v) {
   dpct_json::json_parser parse(json);
   if (parse.parse_value(v))
     return true;
-  error_exit("The Pass file not success.");
+  error_exit("Parsing JSON string was not success.\n");
 }
 
 inline std::shared_ptr<Schema> parse_var_schema_str(const std::string &str) {
@@ -303,7 +312,7 @@ inline void get_data_as_hex(const void *data, size_t data_size,
   hex_str.erase(hex_str.rfind(','));
 }
 
-void copy_mem_to_device(void *dst, void *src, size_t size) {
+inline void copy_mem_to_device(void *dst, void *src, size_t size) {
 // To do: To enable clang++ compiler supported CUDA code.
 #ifdef __NVCC__
   cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost);
@@ -337,10 +346,10 @@ inline void get_val_from_addr(std::string &value,
     copy_mem_to_device(h_addr, addr, size);
   }
   if (schema->is_basic_type()) {
-    value += schema->get_var_name() + ": ";
+    value += "\"" + schema->get_var_name() + "\":\"";
     std::string hex_str = "";
     get_data_as_hex(h_addr, size, hex_str);
-    value += hex_str + "\n";
+    value += hex_str + "\",";
     if (is_device_point(addr))
       free(h_addr);
     return;
@@ -349,9 +358,9 @@ inline void get_val_from_addr(std::string &value,
 
   std::vector<std::shared_ptr<Schema>> type_members =
       type_schema->get_type_member();
-  value += "The data of " + schema->get_var_name() + " is:\n";
+  value += "\"" + schema->get_var_name() + "\":{";
   for (auto member : type_members) {
-    value += member->get_var_name() + ": ";
+    value += "\"" + member->get_var_name() + "\":\"";
     std::string hex_str = "";
     char *addr_with_offset = (char *)h_addr + member->get_offset();
     if (member->is_basic_type()) {
@@ -360,20 +369,69 @@ inline void get_val_from_addr(std::string &value,
     } else {
       get_val_from_addr(hex_str, member, (void *)addr_with_offset, size);
     }
-    value += hex_str + " \n";
+    value += hex_str + "\",";
   }
+  if (value.back() == ',')
+    value.pop_back();
+  value += "},";
   if (is_device_point(addr))
     free(h_addr);
 }
+
+inline static std::map<std::string, int> api_index;
+inline static std::vector<std::string> dump_json;
+inline static std::string dump_file = "dump_log.json";
+
+class Logger {
+public:
+  Logger(const std::string &dump_file) : ipf(dump_file, std::ios::in) {
+    if (ipf.is_open()) {
+      std::getline(ipf, data);
+      ipf.close();
+    } else {
+      std::cerr << "Error opening input file: " << dump_file << std::endl;
+    }
+  }
+  ~Logger() {
+    opf.open(dump_file);
+    std::string ret = std::accumulate(
+        dump_json.begin(), dump_json.end(), std::string("{"),
+        [](std::string acc, std::string val) { return acc + val + ','; });
+    if (!ret.empty()) {
+      ret.pop_back();
+    }
+    ret += "}";
+    opf << ret;
+    if (!opf.is_open()) {
+      opf.close();
+    }
+  }
+  const std::string &get_data() { return data; }
+
+private:
+  std::ifstream ipf;
+  std::ofstream opf;
+  std::string data;
+};
+
+static Logger log(dump_file);
 
 inline void process_var(std::string &log) { log = ""; }
 
 template <class... Args>
 void process_var(std::string &log, const std::string &schema_str, long *value,
-                 size_t size, Args... args) {
+                 Args... args) {
   std::shared_ptr<Schema> schema = parse_var_schema_str(schema_str);
   if (schema == nullptr) {
-    error_exit("Cannot parse the variable schema, please double check.\n");
+    error_exit(
+        "Cannot parse the variable schema, please double check the schema " +
+        schema_str + "\n");
+  }
+  size_t size = 0;
+  if (schema->get_val_type() == ValType::SCALAR) {
+    size = schema->get_type_size();
+  } else {
+    size = get_ptr_size_map()[value];
   }
   if (size == 0) {
     size = schema->get_type_size();
@@ -396,7 +454,11 @@ void process_var(std::string &log, const std::string &schema_str, long *value,
   log += ret;
 }
 
-static std::map<std::string, int> api_index;
+inline void dump_data(const std::string &name, const std::string &data) {
+  std::string data_str = "\"" + name + "\" : " + "{" + data + "}";
+  std::cout << "Dump Data: " << data_str << std::endl;
+  dump_json.push_back(data_str);
+}
 
 template <class... Args>
 void gen_log_API_CP(const std::string &api_name, Args... args) {
@@ -408,8 +470,9 @@ void gen_log_API_CP(const std::string &api_name, Args... args) {
   std::string new_api_name = api_name + std::to_string(api_index[api_name]);
   std::string log;
   process_var(log, args...);
-  std::cout << "API name: " << new_api_name << " \nData Memory: \n"
-            << log << std::endl;
+  if (log.back() == ',')
+    log.pop_back(); // Pop last ',' character
+  dump_data(new_api_name, log);
 }
 
 } // namespace detail
