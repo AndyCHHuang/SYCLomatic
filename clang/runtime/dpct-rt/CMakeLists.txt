@@ -27,15 +27,16 @@ set(dpct_rt_dpstd_files
   include/dpct/dpl_extras/vector.h
   include/dpct/dpl_extras/dpcpp_extensions.h
 )
-set(dpct_rt_debug_files
-  include/debug/debug_helper.hpp
-  include/debug/json.hpp
-  include/debug/schema.hpp
+
+set(dpct_rt_code_pin_files
+  include/dpct/code_pin/code_pin.hpp
+  include/dpct/code_pin/detail/json.hpp
+  include/dpct/code_pin/detail/schema.hpp
 )
 
 set(output_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct)
 set(output_dpstd_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct/dpl_extras)
-set(output_debug_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct/debug)
+set(output_code_pin_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct/code_pin)
 
 set(out_files)
 foreach( f ${dpct_rt_files})
@@ -58,9 +59,9 @@ foreach( f ${dpct_rt_dpstd_files})
   list(APPEND out_files ${dst})
 endforeach( f )
 
-foreach( f ${dpct_rt_debug_files})
+foreach( f ${dpct_rt_code_pin_files})
   set( src ${CMAKE_CURRENT_SOURCE_DIR}/${f} )
-  set( dst ${output_debug_dir}/${f} )
+  set( dst ${output_code_pin_dir}/${f} )
   add_custom_command(OUTPUT ${dst}
     DEPENDS ${src}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src} ${dst}
@@ -82,11 +83,10 @@ install(
   DESTINATION include/dpct/dpl_extras)
 
 install(
-    FILES ${dpct_rt_debug_files}
-    COMPONENT dpct-headers
-    PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-    DESTINATION include/dpct/debug)
-
+  DIRECTORY include/dpct/code_pin DESTINATION include/dpct
+  COMPONENT dpct-headers
+  USE_SOURCE_PERMISSIONS
+)
 if (NOT CMAKE_CONFIGURATION_TYPES) # don't add this for IDE's.
   add_llvm_install_targets(install-dpct-headers
                            DEPENDS dpct-headers
