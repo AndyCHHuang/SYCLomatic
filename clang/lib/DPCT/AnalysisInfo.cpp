@@ -63,7 +63,7 @@ format::FormatRange DpctGlobalInfo::FmtRng = format::FormatRange::none;
 DPCTFormatStyle DpctGlobalInfo::FmtST = DPCTFormatStyle::FS_LLVM;
 std::set<ExplicitNamespace> DpctGlobalInfo::ExplicitNamespaceSet;
 bool DpctGlobalInfo::EnableCtad = false;
-bool DpctGlobalInfo::EnableDebug = false;
+bool DpctGlobalInfo::EnableCodePin = false;
 bool DpctGlobalInfo::GenBuildScript = false;
 bool DpctGlobalInfo::MigrateCmakeScript = false;
 bool DpctGlobalInfo::MigrateCmakeScriptOnly = false;
@@ -4477,14 +4477,14 @@ const std::string DpctGlobalInfo::getVarSchema(const clang::DeclRefExpr *DRE) {
   std::string MacroName =
       "VAR_SCHEMA_" + std::to_string(DpctGlobalInfo::VarSchemaIndex);
   DpctGlobalInfo::SchemaFileContentCUDA +=
-      "#define " + MacroName + " \"" +
+      "#define " + MacroName + " " +
       jsonToString(serializeVarSchemaToJson(dpct::constructVarSchema(DRE))) +
-      "\"" + getNL();
+      getNL();
   DpctGlobalInfo::SchemaFileContentSYCL +=
-      "#define " + MacroName + " \"" +
+      "#define " + MacroName + " " +
       jsonToString(serializeVarSchemaToJson(
           constructSyclVarSchema(constructVarSchema(DRE)))) +
-      "\"" + getNL();
+      getNL();
 
   DpctGlobalInfo::VarSchemaIndex += 1;
   return MacroName;

@@ -4,7 +4,11 @@
 // SPDX-License-Identifier: MIT
 // =============================================================
 
+<<<<<<< HEAD
 #include <cuda.h>
+=======
+#include <ctime>
+>>>>>>> andy/debug_feature
 #include <stdio.h>
 #include <stdlib.h>
 #include "dpct/code_pin/code_pin.hpp"

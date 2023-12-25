@@ -529,7 +529,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
       FileBlockLevelFormatRangesMap.insert(
           std::make_pair(OutPath, BlockLevelFormatRanges));
 
-      tooling::applyAllReplacements(ReplSYCL[Entry.first], Rewrite, false);
+      tooling::applyAllReplacements(ReplSYCL[Entry.first], Rewrite);
 
       llvm::Expected<FileEntryRef> Result =
           Tool.getFiles().getFileRef(Entry.first);
@@ -553,7 +553,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
         applyPatternRewriter(OutputString, Stream);
       }
     }
-    if (DpctGlobalInfo::isDebugEnabled()) {
+    if (DpctGlobalInfo::isCodePinEnabled()) {
       for (auto &Entry : ReplCUDA) {
         OutPath = StringRef(DpctGlobalInfo::removeSymlinks(
             Rewrite.getSourceMgr().getFileManager(), Entry.first));
@@ -594,7 +594,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
         std::ofstream DebugCUDAFile(DebugCUDAPath.getCanonicalPath().str(),
                                     std::ios::binary);
         llvm::raw_os_ostream DebugCUDAStream(DebugCUDAFile);
-        if (dpct::DpctGlobalInfo::isDebugEnabled() && !DebugCUDAFile) {
+        if (dpct::DpctGlobalInfo::isCodePinEnabled() && !DebugCUDAFile) {
           std::string ErrMsg =
               "[ERROR] Create file: " + DebugCUDAPath.getCanonicalPath().str() + " fail.\n";
           PrintMsg(ErrMsg);
@@ -651,8 +651,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
             calculateRangesWithBlockLevelFormatFlag(Entry.second);
         FileBlockLevelFormatRangesMap.insert(
             std::make_pair(DebugCUDAPath.getCanonicalPath().str(), BlockLevelFormatRanges));
-        tooling::applyAllReplacements(ReplCUDA[Entry.first], DebugCUDARewrite,
-                                      true);
+        tooling::applyAllReplacements(ReplCUDA[Entry.first], DebugCUDARewrite);
 
         llvm::Expected<FileEntryRef> Result =
             Tool.getFiles().getFileRef(Entry.first);
@@ -840,7 +839,7 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
 
   saveUpdatedMigrationDataIntoYAML(MainSrcFilesRepls, MainSrcFilesDigest,
                                    YamlFile, SrcFile, MainSrcFileMap);
-  if (dpct::DpctGlobalInfo::isDebugEnabled()) {
+  if (dpct::DpctGlobalInfo::isCodePinEnabled()) {
     std::string SchemaPathCUDA = DebugCUDAFolder + "/generated_schema.hpp";
     std::string SchemaPathSYCL =
         OutRoot.getCanonicalPath().str() + "/generated_schema.hpp";
@@ -865,12 +864,13 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
     llvm::raw_os_ostream SchemaStreamCUDA(SchemaFileCUDA);
 
     std::string SchemaCUDA =
-        "static std::string type_schema_array=\"" +
-        jsonToString(serializeSchemaToJsonArray(CTypeSchemaMap)) + "\";\n" +
-        dpct::DpctGlobalInfo::getInstance().SchemaFileContentCUDA +
-        "\nclass Init {\npublic:\n  Init() {\n    "
-        "dpct::experimental::parse_type_schema_str(type_schema_array);\n  "
-        "}\n};\nstatic Init init;";
+        "static std::string type_schema_array=" +
+        jsonToString(serializeSchemaToJsonArray(CTypeSchemaMap)) + ";" +
+        getNL() + dpct::DpctGlobalInfo::getInstance().SchemaFileContentCUDA +
+        getNL() + "class Init {" + getNL() + "public:" + getNL() +
+        "  Init() {" + getNL() +
+        "    dpct::experimental::parse_type_schema_str(type_schema_array);" +
+        getNL() + "  }" + getNL() + "};" + getNL() + "static Init init;";
 
     SchemaStreamCUDA << SchemaCUDA;
 
@@ -893,12 +893,13 @@ int saveNewFiles(clang::tooling::RefactoringTool &Tool, clang::tooling::UnifiedP
     }
     llvm::raw_os_ostream SchemaStreamSYCL(SchemaFileSYCL);
     std::string SchemaSYCL =
-        "static std::string type_schema_array=\"" +
-        jsonToString(serializeSchemaToJsonArray(STypeSchemaMap)) + "\";\n" +
-        dpct::DpctGlobalInfo::getInstance().SchemaFileContentSYCL +
-        "\nclass Init {\npublic:\n  Init() {\n    "
-        "dpct::experimental::parse_type_schema_str(type_schema_array);\n  "
-        "}\n};\nstatic Init init;";
+        "static std::string type_schema_array=" +
+        jsonToString(serializeSchemaToJsonArray(STypeSchemaMap)) + ";" +
+        getNL() + dpct::DpctGlobalInfo::getInstance().SchemaFileContentSYCL +
+        getNL() + "class Init {" + getNL() + "public:" + getNL() +
+        "  Init() {" + getNL() +
+        "    dpct::experimental::parse_type_schema_str(type_schema_array);" +
+        getNL() + "  }" + getNL() + "};" + getNL() + "static Init init;";
     SchemaStreamSYCL << SchemaSYCL;
   }
   processallOptionAction(InRoot, OutRoot);
