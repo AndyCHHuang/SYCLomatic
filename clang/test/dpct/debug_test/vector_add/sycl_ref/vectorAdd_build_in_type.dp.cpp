@@ -29,13 +29,13 @@ int main() try {
     d_A = sycl::malloc_device<float>(VECTOR_SIZE, q_ct1);
     d_B = sycl::malloc_device<float>(VECTOR_SIZE, q_ct1);
     d_C = sycl::malloc_device<float>(VECTOR_SIZE, q_ct1);
-    dpct::experimental::gen_prolog_API_CP("vectorAdd:vecotr.cu:[29]:", &q_ct1, TYPE_SHCEMA_005, (long *)&d_A, dpct::experimental::get_size_of_schema(TYPE_SHCEMA_005), TYPE_SHCEMA_006, (long *)&d_B, dpct::experimental::get_size_of_schema(TYPE_SHCEMA_006), TYPE_SHCEMA_007, (long *)&d_C, dpct::experimental::get_size_of_schema(TYPE_SHCEMA_007));
+    dpct::experimental::gen_prolog_API_CP("vectorAdd:vecotr.cu:[29]:", &q_ct1, TYPE_SHCEMA_005, (long *)&d_A,TYPE_SHCEMA_006, (long *)&d_B,  TYPE_SHCEMA_007, (long *)&d_C);
     q_ct1.parallel_for(
         sycl::nd_range<3>(sycl::range<3>(1, 1, VECTOR_SIZE), sycl::range<3>(1, 1, VECTOR_SIZE)),
         [=](sycl::nd_item<3> item_ct1) {
             VectorAddKernel(d_A, d_B, d_C, item_ct1);
         });
-    dpct::experimental::gen_epilog_API_CP("vectorAdd:vecotr.cu:[29]]:", &q_ct1, TYPE_SHCEMA_005, (long *)&d_A, dpct::experimental::get_size_of_schema(TYPE_SHCEMA_005), TYPE_SHCEMA_006, (long *)&d_B, dpct::experimental::get_size_of_schema(TYPE_SHCEMA_006), TYPE_SHCEMA_007, (long *)&d_C, dpct::experimental::get_size_of_schema(TYPE_SHCEMA_007));
+    dpct::experimental::gen_epilog_API_CP("vectorAdd:vecotr.cu:[29]]:", &q_ct1, TYPE_SHCEMA_005, (long *)&d_A,TYPE_SHCEMA_006, (long *)&d_B,  TYPE_SHCEMA_007, (long *)&d_C);
 
     float Result[VECTOR_SIZE] = {};
 

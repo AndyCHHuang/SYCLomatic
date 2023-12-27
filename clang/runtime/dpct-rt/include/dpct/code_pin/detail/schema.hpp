@@ -384,7 +384,7 @@ inline static std::string dump_file = "dump_log.json";
 
 class Logger {
 public:
-  Logger(const std::string &dump_file) : ipf(dump_file, std::ios::in) {
+  Logger(const std::string &dump_file) : dump_file(dump_file), ipf(dump_file, std::ios::in) {
     if (ipf.is_open()) {
       std::getline(ipf, data);
       ipf.close();
@@ -392,16 +392,17 @@ public:
       std::cerr << "Error opening input file: " << dump_file << std::endl;
     }
   }
+
   ~Logger() {
     opf.open(dump_file);
-    std::string ret = std::accumulate(
+    std::string json = std::accumulate(
         dump_json.begin(), dump_json.end(), std::string("{"),
         [](std::string acc, std::string val) { return acc + val + ','; });
-    if (!ret.empty()) {
-      ret.pop_back();
+    if (!json.empty()) {
+      json.pop_back();
     }
-    ret += "}";
-    opf << ret;
+    json += "}\n";
+    opf << json;
     if (!opf.is_open()) {
       opf.close();
     }
@@ -409,6 +410,7 @@ public:
   const std::string &get_data() { return data; }
 
 private:
+  std::string dump_file;
   std::ifstream ipf;
   std::ofstream opf;
   std::string data;
@@ -456,7 +458,6 @@ void process_var(std::string &log, const std::string &schema_str, long *value,
 
 inline void dump_data(const std::string &name, const std::string &data) {
   std::string data_str = "\"" + name + "\" : " + "{" + data + "}";
-  std::cout << "Dump Data: " << data_str << std::endl;
   dump_json.push_back(data_str);
 }
 
