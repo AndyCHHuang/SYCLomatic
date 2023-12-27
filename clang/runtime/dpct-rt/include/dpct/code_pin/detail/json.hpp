@@ -16,8 +16,8 @@
 #include <iostream>
 #include <map>
 #include <memory>
-#include <string>
 #include <string.h>
+#include <string>
 #include <sys/types.h>
 #include <type_traits>
 #include <utility>
@@ -34,7 +34,6 @@ namespace experimental {
 namespace detail {
 namespace dpct_json {
 class value;
-
 class array {
 public:
   array() = default;
@@ -66,7 +65,6 @@ private:
 
 class value {
 public:
-  
   enum type {
     int_t,
     float_t,
@@ -81,7 +79,7 @@ public:
     // Use placement new to generate the union share type.
     new (reinterpret_cast<T *>(&union_val)) T(std::forward<U>(V)...);
   };
-  
+
   template <class T, typename = std::enable_if_t<std::is_integral_v<T>>,
             typename = std::enable_if_t<!std::is_floating_point_v<T>>,
             typename = std::enable_if_t<!std::is_same_v<T, bool>>>
@@ -93,13 +91,13 @@ public:
   value(T v) : real_type(float_t) {
     create_in_union<double>((double)v);
   }
-  
+
   template <class T, typename = std::enable_if_t<std::is_same_v<T, bool>>,
             bool = false>
   value(T v) : real_type(boolean_t) {
     create_in_union<bool>((bool)v);
   }
-  
+
   value(const std::nullptr_t &null) : real_type(nullptr_t) {}
   value(std::nullptr_t &&null = nullptr) : real_type(nullptr_t) {}
   value(const value &v) { copy_mem(v); }
@@ -141,7 +139,7 @@ public:
       // To do
       break;
     default:
-      error_exit("The type is not supported. Please double check");
+      error_exit("[JSON Parser]: Parsed unkown value type.\n");
     }
   }
   value &operator=(const value &v) {
@@ -173,7 +171,7 @@ private:
       get_value<dpct_json::array>().~array();
       break;
     default:
-      error_exit("The type not exists, please double check.");
+      error_exit("[JSON Parser]: Parsed unkown value type.");
     }
   }
 
@@ -223,17 +221,15 @@ inline value &object::operator[](std::string &&key) {
 }
 
 inline const value &object::get(const std::string &key) {
-  if (!contains(key)) {
-    error_exit("The " + key + " needs to define in the schema.");
-  }
-  return obj_map[key];
+  if (contains(key))
+    return obj_map[key];
+  error_exit("[JSON Parser]: The key " + key + " is not in the JSON.\n");
 }
 
 inline const value &object::get(std::string &&key) {
-  if (!contains(key)) {
-    error_exit("The " + key + " needs to define in the schema.");
-  }
-  return obj_map[key];
+  if (contains(key))
+    return obj_map[key];
+  error_exit("[JSON Parser]: The key " + key + " is not in the JSON.\n");
 }
 
 inline bool object::contains(const std::string &str) {
@@ -245,7 +241,8 @@ inline bool object::contains(const std::string &str) {
 inline bool json_parser::parse_string(std::string &ret_str) {
   while (peek() != '"') {
     if (cur_p == end) {
-      error_exit("The string needs \" to wrap it. Please check the json "
+      error_exit("[JSON Parser]: Parse string needs \" to wrap it. Please "
+                 "check the JSON "
                  "format.\n");
     }
     ret_str += next();
@@ -266,13 +263,12 @@ inline bool json_parser::parse_num(char first, int64_t &out) {
   while (is_number(peek())) {
     val += next();
   }
-  // Check the value;
   char *end;
   out = strtoimax(val.c_str(), &end, 10);
   if (end == (val.c_str() + val.size())) {
     return true;
   }
-  error_exit("The number format is not correct; please check; \n");
+  error_exit("[JSON Parser]: Parse number failed, please check the JSON.\n");
 }
 
 inline bool json_parser::parse_value(value &v) {
@@ -299,7 +295,8 @@ inline bool json_parser::parse_value(value &v) {
       case ']':
         return true;
       default:
-        error_exit("The end of the json value is not correct. Please check the format.\n");
+        error_exit(
+            "[JSON Parser]: parse JSON value error. Please check format.\n");
       }
     }
     break;
@@ -313,7 +310,7 @@ inline bool json_parser::parse_value(value &v) {
 
       if (next() == '"') {
         if (!parse_string(key)) {
-          error_exit("Parse the json key failed, please check the json format.\n")
+          error_exit("[JSON Parser]: Parse the JSON key failed.\n")
         }
       }
       ignore_space();
@@ -321,7 +318,8 @@ inline bool json_parser::parse_value(value &v) {
         ignore_space();
         obj[key] = nullptr;
         if (!parse_value(obj[key])) {
-          error_exit("The value should be one of the json type.\n")
+          error_exit(
+              "[JSON Parser]: The value should be one of the json type.\n")
         }
       }
       ignore_space();
@@ -333,10 +331,10 @@ inline bool json_parser::parse_value(value &v) {
         return true;
       }
       default:
-        error_exit("Json parsing Error: The key should be end with '}' or ','.\n")
+        error_exit("[JSON Parser]: The key should be end with '}' or ','.\n")
       }
     }
-    error_exit("The key-value format not correct");
+    error_exit("[JSON Parser]: The key-value pair format is not correct");
     break;
   }
   case '"': {
@@ -350,13 +348,15 @@ inline bool json_parser::parse_value(value &v) {
       v = true;
       return true;
     }
-    error_exit("The bool value should be \"true\", please check the spelling.");
+    error_exit("[JSON Parser]: The bool value should be \"true\", please check "
+               "the spelling.");
   case 'f':
     if (next() == 'a' && next() == 'l' && next() == 's' && next() == 'e') {
       v = false;
       return true;
     }
-    error_exit("The bool value should be \"false\", please check the spelling.");
+    error_exit("[JSON Parser]: The bool value should be \"false\", please "
+               "check the spelling.");
   default:
     if (is_number(c)) {
       int64_t value;
@@ -364,11 +364,13 @@ inline bool json_parser::parse_value(value &v) {
       v = value;
       return true;
     }
-    error_exit("Unkown Json type, please check the format json format.\n");
+    error_exit("[JSON Parser]: Unkown JSON type, please check the format json "
+               "format.\n");
   }
 }
+
 } // namespace dpct_json
-} // namespace experimental
 } // namespace detail
+} // namespace experimental
 } // namespace dpct
 #endif
