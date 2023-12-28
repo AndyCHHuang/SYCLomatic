@@ -79,7 +79,7 @@ inline ValType getValType(const std::string &str) {
   } else if (to_str == "ARRAY") {
     return ValType::ARRAY;
   }
-  error_exit("The value type:" + str + " is unkonwn");
+  error_exit("The value type : " + str + " is unkonwn.");
 }
 
 inline MemLoc getMemLoc(const std::string &str) {
@@ -91,7 +91,7 @@ inline MemLoc getMemLoc(const std::string &str) {
   } else if (to_str == "DEVICE") {
     return MemLoc::DEVICE;
   }
-  error_exit("The memory location:" + str + " is unkonwn");
+  error_exit("The memory location : " + str + " is unkonwn.");
 }
 
 inline schema_type get_schema_type(const std::string &str) {
@@ -103,7 +103,7 @@ inline schema_type get_schema_type(const std::string &str) {
   } else if (to_str == "MEMBER") {
     return schema_type::MEMBER;
   }
-  error_exit("The schmea type:" + str + " is unkonwn");
+  error_exit("The schmea type : " + str + " is unkonwn.");
 }
 class Schema {
 public:
@@ -264,35 +264,16 @@ inline bool dpct_json::parse(const std::string &json, dpct_json::value &v) {
   dpct_json::json_parser parse(json);
   if (parse.parse_value(v))
     return true;
-  error_exit("Parsing JSON string was not success.\n");
+  return false;
 }
 
-inline std::shared_ptr<Schema> parse_var_schema_str(const std::string &str) {
+inline std::shared_ptr<Schema> gen_obj_schema(const std::string &str) {
   dpct_json::value v(nullptr);
   dpct_json::parse(str, v);
   if (v.real_type == dpct_json::value::object_t) {
     return gen_schema(v);
   }
   return nullptr;
-}
-
-inline void parse_type_schema_str(const std::string &str) {
-  dpct_json::value v(nullptr);
-  dpct_json::parse(str, v);
-  if (v.real_type == dpct_json::value::array_t) {
-    dpct_json::array arr = v.get_value<dpct_json::array>();
-    for (auto iter = arr.begin(); iter != arr.end(); iter++) {
-      dpct_json::value &cur_val = *iter;
-      if (cur_val.real_type == dpct_json::value::object_t) {
-        std::shared_ptr<Schema> type_schema = gen_schema(cur_val);
-        if (type_schema != nullptr) {
-          schema_map[type_schema->get_type_name()] = type_schema;
-        }
-      }
-    }
-    return;
-  }
-  error_exit("The type schema must be the array type.")
 }
 
 inline void get_data_as_hex(const void *data, size_t data_size,
@@ -388,8 +369,6 @@ public:
     if (ipf.is_open()) {
       std::getline(ipf, data);
       ipf.close();
-    } else {
-      std::cerr << "Error opening input file: " << dump_file << std::endl;
     }
   }
 
@@ -423,7 +402,7 @@ inline void process_var(std::string &log) { log = ""; }
 template <class... Args>
 void process_var(std::string &log, const std::string &schema_str, long *value,
                  Args... args) {
-  std::shared_ptr<Schema> schema = parse_var_schema_str(schema_str);
+  std::shared_ptr<Schema> schema = gen_obj_schema(schema_str);
   if (schema == nullptr) {
     error_exit(
         "Cannot parse the variable schema, please double check the schema " +

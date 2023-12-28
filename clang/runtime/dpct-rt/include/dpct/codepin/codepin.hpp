@@ -68,12 +68,12 @@ void gen_epilog_API_CP(const std::string &api_name, sycl::queue *queue,
 }
 #endif
 
-inline std::map<void *, uint32_t> &get_pointer_size_map() {
+inline std::map<void *, uint32_t> &get_ptr_size_map() {
   return dpct::experimental::detail::get_ptr_size_map();
 }
 
 inline uint32_t get_pointer_size_in_bytes_from_map(void *ptr) {
-  const std::map<void *, uint32_t> &ptr_size_map = get_pointer_size_map();
+  const std::map<void *, uint32_t> &ptr_size_map = get_ptr_size_map();
   const auto &it = ptr_size_map.find(ptr);
   return (it != ptr_size_map.end()) ? it->second : 0;
 }

@@ -8,7 +8,7 @@
 #include <dpct/dpct.hpp>
 #include <stdio.h>
 #include <stdlib.h>
-#include "dpct/code_pin/code_pin.hpp"
+#include "dpct/codepin/codepin.hpp"
 #include "generated_schema.hpp"
 #define VECTOR_SIZE 256
 

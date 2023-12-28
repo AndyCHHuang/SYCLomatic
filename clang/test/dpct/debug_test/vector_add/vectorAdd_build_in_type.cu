@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: MIT
 // =============================================================
 
-#include "dpct/code_pin/code_pin.hpp"
+#include "dpct/codepin/codepin.hpp"
 #include "generated_schema.hpp"
 #include <cuda.h>
 #include <stdio.h>

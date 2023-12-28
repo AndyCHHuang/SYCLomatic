@@ -25,7 +25,7 @@
 
 #define error_exit(msg)                                                        \
   {                                                                            \
-    std::cerr << "Failed at:" << __FILE__ << "\nLine number is:" << __LINE__   \
+    std::cerr << "Failed at:" << __FILE__ << "\nLine number is : " << __LINE__ \
               << "\n" msg << std::endl;                                        \
     std::exit(-1);                                                             \
   }
@@ -139,7 +139,7 @@ public:
       // To do
       break;
     default:
-      error_exit("[JSON Parser]: Parsed unkown value type.\n");
+      error_exit("[JSON Parser]: Parsingd unkown value type.\n");
     }
   }
   value &operator=(const value &v) {
@@ -171,7 +171,7 @@ private:
       get_value<dpct_json::array>().~array();
       break;
     default:
-      error_exit("[JSON Parser]: Parsed unkown value type.");
+      error_exit("[JSON Parser]: Parsingd unkown value type.");
     }
   }
 
@@ -180,6 +180,7 @@ private:
                            dpct_json::object>)];
 };
 
+static std::string json_key = "";
 class json_parser {
 private:
   const char *begin = nullptr;
@@ -191,7 +192,7 @@ public:
       : begin(json.c_str()), cur_p(json.c_str()),
         end(json.c_str() + json.size()) {}
   bool parse_value(value &v);
-  bool parse_string(std::string &ret);
+  bool parse_str(std::string &ret);
   bool parse_num(char first, int64_t &out);
   void ignore_space() {
     while (cur_p != end && (*cur_p == ' ' || *cur_p == '\t' || *cur_p == '\r' ||
@@ -223,13 +224,15 @@ inline value &object::operator[](std::string &&key) {
 inline const value &object::get(const std::string &key) {
   if (contains(key))
     return obj_map[key];
-  error_exit("[JSON Parser]: The key " + key + " is not in the JSON.\n");
+  error_exit("[JSON Parser]: Parsing JSON to cpp failed. Missing key: " + key +
+             " in the JSON file.");
 }
 
 inline const value &object::get(std::string &&key) {
   if (contains(key))
     return obj_map[key];
-  error_exit("[JSON Parser]: The key " + key + " is not in the JSON.\n");
+  error_exit("[JSON Parser]: Parsing JSON to cpp failed. Missing key: " + key +
+             " in the JSON file.");
 }
 
 inline bool object::contains(const std::string &str) {
@@ -238,14 +241,12 @@ inline bool object::contains(const std::string &str) {
   return false;
 }
 
-inline bool json_parser::parse_string(std::string &ret_str) {
+inline bool json_parser::parse_str(std::string &str) {
   while (peek() != '"') {
     if (cur_p == end) {
-      error_exit("[JSON Parser]: Parse string needs \" to wrap it. Please "
-                 "check the JSON "
-                 "format.\n");
+      return false;
     }
-    ret_str += next();
+    str += next();
   }
   next();
   return true;
@@ -268,7 +269,7 @@ inline bool json_parser::parse_num(char first, int64_t &out) {
   if (end == (val.c_str() + val.size())) {
     return true;
   }
-  error_exit("[JSON Parser]: Parse number failed, please check the JSON.\n");
+  error_exit("[JSON Parser]: Parsing JSON value error. The key is " + json_key);
 }
 
 inline bool json_parser::parse_value(value &v) {
@@ -295,8 +296,8 @@ inline bool json_parser::parse_value(value &v) {
       case ']':
         return true;
       default:
-        error_exit(
-            "[JSON Parser]: parse JSON value error. Please check format.\n");
+        error_exit("[JSON Parser]: Parsing JSON value error. The key is " +
+                   json_key);
       }
     }
     break;
@@ -309,8 +310,11 @@ inline bool json_parser::parse_value(value &v) {
       ignore_space();
 
       if (next() == '"') {
-        if (!parse_string(key)) {
-          error_exit("[JSON Parser]: Parse the JSON key failed.\n")
+        if (!parse_str(key)) {
+          error_exit("[JSON Parser]: key value of a JSON need to be wrapped in "
+                     "\". Please check the JSON file format.");
+        } else {
+          json_key = key;
         }
       }
       ignore_space();
@@ -318,8 +322,8 @@ inline bool json_parser::parse_value(value &v) {
         ignore_space();
         obj[key] = nullptr;
         if (!parse_value(obj[key])) {
-          error_exit(
-              "[JSON Parser]: The value should be one of the json type.\n")
+          error_exit("[JSON Parser]: Can not parse value, the JSON key is " +
+                     key + ".\n");
         }
       }
       ignore_space();
@@ -331,15 +335,15 @@ inline bool json_parser::parse_value(value &v) {
         return true;
       }
       default:
-        error_exit("[JSON Parser]: The key should be end with '}' or ','.\n")
+        error_exit("[JSON Parser]: The " + json_key +
+                   " value pair should be end with '}' or ','.\n")
       }
     }
-    error_exit("[JSON Parser]: The key-value pair format is not correct");
     break;
   }
   case '"': {
     std::string str = "";
-    parse_string(str);
+    parse_str(str);
     v = str;
     return true;
   }
@@ -348,14 +352,16 @@ inline bool json_parser::parse_value(value &v) {
       v = true;
       return true;
     }
-    error_exit("[JSON Parser]: The bool value should be \"true\", please check "
+    error_exit("[JSON Parser]: The bool value of " + json_key +
+               " should be \"true\", please check "
                "the spelling.");
   case 'f':
     if (next() == 'a' && next() == 'l' && next() == 's' && next() == 'e') {
       v = false;
       return true;
     }
-    error_exit("[JSON Parser]: The bool value should be \"false\", please "
+    error_exit("[JSON Parser]: The bool value of " + json_key +
+               " should be \"false\", please "
                "check the spelling.");
   default:
     if (is_number(c)) {
@@ -364,7 +370,8 @@ inline bool json_parser::parse_value(value &v) {
       v = value;
       return true;
     }
-    error_exit("[JSON Parser]: Unkown JSON type, please check the format json "
+    error_exit("[JSON Parser]: Unkown JSON type, the last key is " + json_key +
+               ". Please check the format JSON "
                "format.\n");
   }
 }
