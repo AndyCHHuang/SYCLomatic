@@ -28,15 +28,15 @@ set(dpct_rt_dpstd_files
   include/dpct/dpl_extras/dpcpp_extensions.h
 )
 
-set(dpct_rt_code_pin_files
-  include/dpct/code_pin/code_pin.hpp
-  include/dpct/code_pin/detail/json.hpp
-  include/dpct/code_pin/detail/schema.hpp
+set(dpct_rt_codepin_files
+  include/dpct/codepin/codepin.hpp
+  include/dpct/codepin/detail/json.hpp
+  include/dpct/codepin/detail/schema.hpp
 )
 
 set(output_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct)
 set(output_dpstd_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct/dpl_extras)
-set(output_code_pin_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct/code_pin)
+set(output_codepin_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include/dpct/codepin)
 
 set(out_files)
 foreach( f ${dpct_rt_files})
@@ -59,9 +59,9 @@ foreach( f ${dpct_rt_dpstd_files})
   list(APPEND out_files ${dst})
 endforeach( f )
 
-foreach( f ${dpct_rt_code_pin_files})
+foreach( f ${dpct_rt_codepin_files})
   set( src ${CMAKE_CURRENT_SOURCE_DIR}/${f} )
-  set( dst ${output_code_pin_dir}/${f} )
+  set( dst ${output_codepin_dir}/${f} )
   add_custom_command(OUTPUT ${dst}
     DEPENDS ${src}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src} ${dst}
@@ -83,7 +83,7 @@ install(
   DESTINATION include/dpct/dpl_extras)
 
 install(
-  DIRECTORY include/dpct/code_pin DESTINATION include/dpct
+  DIRECTORY include/dpct/codepin DESTINATION include/dpct
   COMPONENT dpct-headers
   USE_SOURCE_PERMISSIONS
 )

@@ -1,12 +1,12 @@
-//==---- code_pin.hpp -------------------------*- C++ -*----------------==//
+//==---- codepin.hpp -------------------------*- C++ -*----------------==//
 //
 // Copyright (C) Intel Corporation
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 // See https://llvm.org/LICENSE.txt for license information.
 //
 //===----------------------------------------------------------------------===//
-#ifndef __DPCT_CODE_PIN_HPP__
-#define __DPCT_CODE_PIN_HPP__
+#ifndef __DPCT_CODEPIN_HPP__
+#define __DPCT_CODEPIN_HPP__
 
 #include "detail/json.hpp"
 #include "detail/schema.hpp"
@@ -80,4 +80,4 @@ inline uint32_t get_pointer_size_in_bytes_from_map(void *ptr) {
 
 } // namespace experimental
 } // namespace dpct
-#endif // End of __DPCT_CODE_PIN_HPP__
+#endif // End of __DPCT_CODEPIN_HPP__
