@@ -590,6 +590,9 @@ OutputBuilder::consumeKeyword(std::string &OutStr, size_t &Idx) {
     ResultBuilder->Kind = Kind::TemplateArg;
     ResultBuilder->ArgIndex = consumeArgIndex(OutStr, Idx, "$template_arg");
     consumeRParen(OutStr, Idx, "$template_arg");
+  } else if (OutStr.substr(Idx, 12) == "$method_base") {
+    Idx += 5;
+    ResultBuilder->Kind = Kind::MethodBase;
   } else {
     ResultBuilder->Kind = Kind::Arg;
     ResultBuilder->ArgIndex = consumeArgIndex(OutStr, Idx, "$");

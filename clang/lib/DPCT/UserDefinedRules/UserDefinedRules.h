@@ -347,7 +347,8 @@ public:
     TypeName,
     AddrOf,
     DerefedTypeName,
-    TemplateArg
+    TemplateArg,
+    MethodBase
   };
   std::string RuleName;
   clang::tooling::UnifiedPath RuleFile;

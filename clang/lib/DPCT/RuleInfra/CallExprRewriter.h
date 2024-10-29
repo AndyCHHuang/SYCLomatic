@@ -11,7 +11,6 @@
 
 #include "Diagnostics/Diagnostics.h"
 
-
 namespace clang {
 namespace dpct {
 
@@ -1681,6 +1680,29 @@ public:
     }
     case (OutputBuilder::Kind::TemplateArg): {
       OS << getTemplateArg(OB.ArgIndex)(Call);
+      return;
+    }
+    case (OutputBuilder::Kind::MethodBase): {
+      if (auto *MCE = llvm::dyn_cast<CXXMemberCallExpr>(Call)) {
+        if (auto *Callee = llvm::dyn_cast<MemberExpr>(MCE->getCallee())) {
+          auto &SM = DpctGlobalInfo::getSourceManager();
+          auto &Context = DpctGlobalInfo::getContext();
+          auto CallRange =
+              getDefinitionRange(Call->getBeginLoc(), Call->getEndLoc());
+          auto LastTokenLength = Lexer::MeasureTokenLength(
+              CallRange.getEnd(), SM, Context.getLangOpts());
+          auto Base = Callee->getBase();
+          std::string BaseStr = getStringInRange(
+              Base->getSourceRange(), CallRange.getBegin(),
+              CallRange.getEnd().getLocWithOffset(LastTokenLength));
+          OS << BaseStr;
+          if (Callee->isArrow()) {
+            OS << "->";
+          } else {
+            OS << ".";
+          }
+        }
+      }
       return;
     }
     }
