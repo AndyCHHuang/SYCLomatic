@@ -274,6 +274,7 @@ the tool.
        ├── disable_rule.yaml
        ├── enum_rule.yaml
        ├── header_rule.yaml
+       ├── helper_function_rule.yaml
        ├── macro_rule.yaml
        ├── pattern_rewrite_rule.yaml
        └── type_rule.yaml
