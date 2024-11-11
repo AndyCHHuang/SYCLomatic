@@ -1692,9 +1692,14 @@ public:
           auto LastTokenLength = Lexer::MeasureTokenLength(
               CallRange.getEnd(), SM, Context.getLangOpts());
           auto Base = Callee->getBase();
-          std::string BaseStr = getStringInRange(
-              Base->getSourceRange(), CallRange.getBegin(),
-              CallRange.getEnd().getLocWithOffset(LastTokenLength));
+          std::string BaseStr;
+          if (isa<CXXThisExpr>(Callee->getBase())) {
+            BaseStr = "this";
+          } else {
+            BaseStr = getStringInRange(
+                Base->getSourceRange(), CallRange.getBegin(),
+                CallRange.getEnd().getLocWithOffset(LastTokenLength));
+          }
           OS << BaseStr;
           if (Callee->isArrow()) {
             OS << "->";

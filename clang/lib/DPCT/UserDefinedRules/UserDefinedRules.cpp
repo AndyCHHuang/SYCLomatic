@@ -16,6 +16,7 @@
 #include "MigrationRuleManager.h"
 #include "RuleInfra/TypeLocRewriters.h"
 #include "Utility.h"
+#include "clang/ASTMatchers/ASTMatchers.h"
 #include "llvm/Support/YAMLTraits.h"
 
 using namespace clang::ast_matchers;
@@ -591,7 +592,7 @@ OutputBuilder::consumeKeyword(std::string &OutStr, size_t &Idx) {
     ResultBuilder->ArgIndex = consumeArgIndex(OutStr, Idx, "$template_arg");
     consumeRParen(OutStr, Idx, "$template_arg");
   } else if (OutStr.substr(Idx, 12) == "$method_base") {
-    Idx += 5;
+    Idx += 12;
     ResultBuilder->Kind = Kind::MethodBase;
   } else {
     ResultBuilder->Kind = Kind::Arg;
@@ -740,12 +741,16 @@ void clang::dpct::UserDefinedClassFieldRule::runRule(
 
 void clang::dpct::UserDefinedClassMethodRule::registerMatcher(
     clang::ast_matchers::MatchFinder &MF) {
-  MF.addMatcher(cxxMemberCallExpr(
-                    allOf(on(hasType(hasCanonicalType(qualType(
-                              hasDeclaration(namedDecl(hasName(BaseName))))))),
-                          callee(cxxMethodDecl(hasName(MethodName)))))
-                    .bind("memberCallExpr"),
-                this);
+  MF.addMatcher(
+      cxxMemberCallExpr(
+          anyOf(allOf(on(hasType(hasCanonicalType(qualType(
+                          hasDeclaration(namedDecl(hasName(BaseName))))))),
+                      callee(cxxMethodDecl(hasName(MethodName)))),
+                allOf(on(hasType(pointerType(pointee(hasCanonicalType(qualType(
+                          hasDeclaration(namedDecl(hasName(BaseName))))))))),
+                      callee(cxxMethodDecl(hasName(MethodName))))))
+          .bind("memberCallExpr"),
+      this);
 }
 
 void clang::dpct::UserDefinedClassMethodRule::runRule(
